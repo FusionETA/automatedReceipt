@@ -1,0 +1,5 @@
+.DS_Store
+.env
+__MACOSX/
+storage/logs/
+*.log

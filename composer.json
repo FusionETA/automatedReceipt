@@ -1,0 +1,21 @@
+{
+    "name": "globe-success/xero-receipt-app",
+    "description": "Xero automated receipt sender for Globe Success Learning",
+    "type": "project",
+    "require": {
+        "php": "^8.0",
+        "vlucas/phpdotenv": "^5.5",
+        "phpmailer/phpmailer": "^6.8",
+        "dompdf/dompdf": "^2.0",
+        "guzzlehttp/guzzle": "^7.8",
+        "monolog/monolog": "^3.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "scripts": {
+        "start": "php -S localhost:8080 -t public"
+    }
+}

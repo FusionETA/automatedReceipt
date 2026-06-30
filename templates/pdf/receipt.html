@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @page {
+      margin: 28px 32px 40px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 11px;
+      color: #111111;
+      background: #ffffff;
+    }
+
+    .brand-row {
+      margin-bottom: 18px;
+    }
+
+    .brand-logo {
+      max-width: 170px;
+      max-height: 72px;
+      display: block;
+    }
+
+    .brand-fallback {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      line-height: 1.1;
+      max-width: 250px;
+    }
+
+    .title {
+      font-size: 30px;
+      font-weight: 400;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 18px;
+    }
+
+    .summary-table td {
+      vertical-align: top;
+    }
+
+    .customer-block {
+      width: 54%;
+      padding-right: 24px;
+      line-height: 1.45;
+    }
+
+    .customer-name {
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .meta-block {
+      width: 20%;
+      padding-right: 16px;
+      line-height: 1.4;
+    }
+
+    .meta-label {
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .meta-value {
+      margin-bottom: 12px;
+    }
+
+    .business-block {
+      width: 26%;
+      line-height: 1.45;
+    }
+
+    .business-name {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .top-total-wrap {
+      margin-bottom: 54px;
+    }
+
+    .top-total {
+      width: 45%;
+      margin-left: auto;
+      border-collapse: collapse;
+      border-top: 1px solid #4b4b4b;
+      border-bottom: 1px solid #4b4b4b;
+    }
+
+    .top-total td {
+      padding: 5px 0;
+      font-size: 11px;
+    }
+
+    .top-total .label {
+      text-align: right;
+      font-weight: 600;
+      padding-right: 18px;
+    }
+
+    .top-total .amount {
+      text-align: right;
+      width: 96px;
+    }
+
+    .receipt-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .receipt-table thead th {
+      font-size: 11px;
+      font-weight: 600;
+      text-align: left;
+      padding: 0 0 6px;
+      border-bottom: 1px solid #9e9e9e;
+    }
+
+    .receipt-table thead th.num {
+      text-align: right;
+    }
+
+    .receipt-table tbody td {
+      vertical-align: top;
+      line-height: 1.4;
+      padding: 4px 0 4px;
+    }
+
+    .receipt-table tbody td.num {
+      text-align: right;
+      white-space: nowrap;
+      padding-left: 12px;
+    }
+
+    .payment-reference {
+      padding-right: 20px;
+      word-wrap: break-word;
+    }
+
+    .totals-row td {
+      border-top: 1px solid #d7d7d7;
+      padding-top: 8px;
+    }
+
+    .totals-label {
+      text-align: right;
+      font-weight: 700;
+      padding-right: 18px;
+    }
+
+    .totals-amount {
+      text-align: right;
+      font-weight: 700;
+      white-space: nowrap;
+      padding-left: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="brand-row">{{BUSINESS_BRAND_HTML}}</div>
+
+  <div class="title">OFFICIAL RECEIPT</div>
+
+  <table class="summary-table">
+    <tr>
+      <td class="customer-block">
+        <div class="customer-name">{{CUSTOMER_NAME}}</div>
+        <div>{{CUSTOMER_DETAILS_HTML}}</div>
+      </td>
+      <td class="meta-block">
+        <div class="meta-label">Payment Date</div>
+        <div class="meta-value">{{PAYMENT_DATE}}</div>
+        <div class="meta-label">Sent Date</div>
+        <div class="meta-value">{{SENT_DATE}}</div>
+      </td>
+      <td class="business-block">
+        <div class="business-name">{{BUSINESS_NAME}}</div>
+        <div>{{BUSINESS_ADDRESS_HTML}}</div>
+        {{BUSINESS_EMAIL_HTML}}
+        {{BUSINESS_PHONE_HTML}}
+      </td>
+    </tr>
+  </table>
+
+  <div class="top-total-wrap">
+    <table class="top-total">
+      <tr>
+        <td class="label">Total {{CURRENCY}} paid</td>
+        <td class="amount">{{AMOUNT_PAID_VALUE}}</td>
+      </tr>
+    </table>
+  </div>
+
+  <table class="receipt-table">
+    <colgroup>
+      <col style="width: 15%;">
+      <col style="width: 21%;">
+      <col style="width: 28%;">
+      <col style="width: 12%;">
+      <col style="width: 12%;">
+      <col style="width: 12%;">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Invoice Date</th>
+        <th>Reference</th>
+        <th>Payment Reference</th>
+        <th class="num">Invoice Total</th>
+        <th class="num">Amount Paid</th>
+        <th class="num">Still Owing</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{RECEIPT_ROWS}}
+      <tr class="totals-row">
+        <td colspan="3"></td>
+        <td class="totals-label">Total {{CURRENCY}}</td>
+        <td class="totals-amount">{{AMOUNT_PAID_VALUE}}</td>
+        <td class="totals-amount">{{STILL_OWING_VALUE}}</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
