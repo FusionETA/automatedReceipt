@@ -163,6 +163,14 @@ function pageUrl(int $page): string {
   .topbar { background: #1a1a1a; color: #fff; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .topbar h1 { font-size: 18px; font-weight: 600; white-space: nowrap; }
   .topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .settings-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+    color: #fff; padding: 7px 14px; border-radius: 7px;
+    font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap;
+    transition: background .15s;
+  }
+  .settings-btn:hover { background: rgba(255,255,255,.22); }
 
   /* ── Org dropdown — same for 1 or many orgs ── */
   .org-switcher { position: relative; }
@@ -314,13 +322,10 @@ function pageUrl(int $page): string {
       </div>
     </div>
 
-    <!-- ── Live Events button ──────────────────────────────────────── -->
-    <!-- <a href="<?= Bootstrap::url('/events.php') ?>" class="events-btn">
-      📡 Live Events
-      <?php if ($todayEventCount > 0): ?>
-        <span class="events-badge"><?= $todayEventCount ?></span>
-      <?php endif; ?>
-    </a> -->
+    <!-- ── Receipt Settings gear button ─────────────────────────────── -->
+    <a href="<?= Bootstrap::url('/bank-accounts.php') ?>" class="settings-btn" title="Receipt Settings">
+      ⚙️ <span>Receipt Settings</span>
+    </a>
 
     <!-- ── User menu ──────────────────────────────────────────────── -->
     <div class="user-menu-wrap">
@@ -331,7 +336,6 @@ function pageUrl(int $page): string {
       </button>
       <div class="user-menu" id="userMenu">
         <div class="user-menu-header"><?= htmlspecialchars(Auth::userEmail()) ?></div>
-        <a href="<?= Bootstrap::url('/bank-accounts.php') ?>" class="user-menu-item">Receipt Settings</a>
         <a href="<?= Bootstrap::url('/logout.php') ?>" class="user-menu-item">Sign out</a>
       </div>
     </div>
