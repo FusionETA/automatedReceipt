@@ -464,7 +464,7 @@ uasort($savedTemplates, static function (array $a, array $b): int {
           <!-- Selected COA panel -->
           <div id="coaSelectedBar" style="margin:14px 20px 0;display:none;">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
-              <div style="font-size:13px;font-weight:700;color:#111;">✅ <span id="coaSelectedCount">0</span> selected</div>
+              <div style="font-size:13px;font-weight:700;color:#111;"><span id="coaSelectedCount">0</span> selected</div>
               <button type="button" id="untickAllCoa" style="padding:5px 14px;background:#fff;border:1px solid #fca5a5;color:#b91c1c;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✕ Untick All</button>
             </div>
             <div id="coaSelectedList" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;overflow:hidden;"></div>
