@@ -251,34 +251,43 @@ foreach ($files as $file) {
                 }
             }
 
-            if (!empty($matchedChartCodes) && count($lineAccountCodes) > 1) {
-                $invoiceNumber = $invoice['InvoiceNumber'] ?? $resourceId;
-                $errorMessage = 'Matched COA ' . implode(', ', $matchedChartCodes)
-                    . ' but invoice line items use multiple account codes: '
-                    . implode(', ', $lineAccountCodes)
-                    . '. All line items must use the same account code.';
-
-                Logger::warning('cron', "Invoice {$resourceId} matched chart account code but has mixed account codes — skipping receipt.", [
-                    'matched_codes' => $matchedChartCodes,
-                    'line_account_codes' => $lineAccountCodes,
-                ]);
-
-                OrgStorage::saveReceiptLog(
-                    $tenantId,
-                    $invoiceNumber,
-                    'coa_mismatch',
-                    '',
-                    $errorMessage
-                );
-
-                continue;
-            }
-
             if (!empty($matchedChartCodes)) {
-                $matchedCode = $matchedChartCodes[0];
+                // Collect the template assigned to each matched COA
+                $matchedTemplates = [];
+                foreach ($matchedChartCodes as $matchedCode) {
+                    $tpl = OrgStorage::getChartAccountTemplate($tenantId, $matchedCode);
+                    $tplId = $tpl['id'] ?? null;
+                    $matchedTemplates[$matchedCode] = ['template' => $tpl, 'template_id' => $tplId];
+                }
+
+                $uniqueTemplateIds = array_unique(array_column(array_values($matchedTemplates), 'template_id'));
+
+                if (count($uniqueTemplateIds) > 1) {
+                    // Multiple matched COAs with different templates — ambiguous, skip
+                    $invoiceNumber = $invoice['InvoiceNumber'] ?? $resourceId;
+                    $errorMessage = 'Multiple selected COAs matched (' . implode(', ', $matchedChartCodes)
+                        . ') with different templates assigned. Cannot determine which template to use.';
+
+                    Logger::warning('cron', "Invoice {$resourceId} matched multiple COAs with different templates — skipping receipt.", [
+                        'matched_codes' => $matchedChartCodes,
+                    ]);
+
+                    OrgStorage::saveReceiptLog(
+                        $tenantId,
+                        $invoiceNumber,
+                        'coa_mismatch',
+                        '',
+                        $errorMessage
+                    );
+
+                    continue;
+                }
+
+                // All matched COAs share the same template (or only one matched) — proceed
+                $matchedCode = array_key_first($matchedTemplates);
                 $receiptRule = [
                     'account_code' => $matchedCode,
-                    'template'     => OrgStorage::getChartAccountTemplate($tenantId, $matchedCode),
+                    'template'     => $matchedTemplates[$matchedCode]['template'],
                 ];
             }
 
