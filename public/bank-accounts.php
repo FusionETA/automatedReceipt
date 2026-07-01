@@ -461,14 +461,13 @@ uasort($savedTemplates, static function (array $a, array $b): int {
         <div id="coa-select" class="subtab-panel" hidden>
           <div class="section-copy">Chart accounts are grouped by Xero account class so users can expand only the categories they need. You can select more than one code.</div>
 
-          <!-- Selected COA summary bar -->
-          <div id="coaSelectedBar" style="margin:14px 20px 0;padding:12px 16px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;display:none;">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-              <div style="font-size:13px;font-weight:700;color:#0369a1;">
-                ✅ <span id="coaSelectedCount">0</span> selected: <span id="coaSelectedNames" style="font-weight:400;color:#0c4a6e;"></span>
-              </div>
-              <button type="button" class="quick-link" id="untickAllCoa" style="color:#b91c1c;white-space:nowrap;">✕ Untick all</button>
+          <!-- Selected COA panel -->
+          <div id="coaSelectedBar" style="margin:14px 20px 0;display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
+              <div style="font-size:13px;font-weight:700;color:#111;">✅ <span id="coaSelectedCount">0</span> selected</div>
+              <button type="button" id="untickAllCoa" style="padding:5px 14px;background:#fff;border:1px solid #fca5a5;color:#b91c1c;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✕ Untick All</button>
             </div>
+            <div id="coaSelectedList" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;overflow:hidden;"></div>
           </div>
 
           <div class="search-wrap">
@@ -1070,32 +1069,51 @@ uasort($savedTemplates, static function (array $a, array $b): int {
     const checked = Array.from(document.querySelectorAll('input[name="chart_account_codes[]"]:checked'));
     const bar = document.getElementById('coaSelectedBar');
     const countEl = document.getElementById('coaSelectedCount');
-    const namesEl = document.getElementById('coaSelectedNames');
-    if (!bar || !countEl || !namesEl) return;
+    const list = document.getElementById('coaSelectedList');
+    if (!bar || !countEl || !list) return;
 
     if (checked.length === 0) {
       bar.style.display = 'none';
+      list.innerHTML = '';
       return;
     }
 
     bar.style.display = '';
     countEl.textContent = checked.length;
 
-    // Build label: show code + name from the row
-    const labels = checked.map(function(cb) {
+    // Render each selected item as a checkbox row so user can untick directly
+    list.innerHTML = '';
+    checked.forEach(function(cb) {
       const row = cb.closest('.coa-row');
       const code = row?.querySelector('.coa-code')?.textContent?.trim() || cb.value;
       const name = row?.querySelector('.coa-name')?.textContent?.trim() || '';
-      return name ? code + ' ' + name : code;
+      const type = row?.querySelector('.coa-meta')?.textContent?.trim() || '';
+
+      const div = document.createElement('label');
+      div.style.cssText = 'display:flex;align-items:center;gap:14px;padding:11px 16px;border-bottom:1px solid #e0f2fe;cursor:pointer;';
+      div.innerHTML = `
+        <input type="checkbox" checked style="width:17px;height:17px;accent-color:#2563eb;flex-shrink:0;cursor:pointer;">
+        <span style="font-family:ui-monospace,monospace;font-weight:700;color:#111;width:140px;flex-shrink:0;">${escapeHtml(code)}</span>
+        <span>
+          <div style="font-size:14px;font-weight:600;color:#111;">${escapeHtml(name)}</div>
+          ${type ? `<div style="font-size:12px;color:#888;">${escapeHtml(type)}</div>` : ''}
+        </span>
+      `;
+      div.style.background = '#f0f9ff';
+
+      // When unticked from the top panel, uncheck the real checkbox below
+      const mirrorCb = div.querySelector('input[type=checkbox]');
+      mirrorCb.addEventListener('change', function() {
+        cb.checked = false;
+        refreshCoaSelectedBar();
+      });
+
+      list.appendChild(div);
     });
 
-    // Show up to 5, then "+N more"
-    const MAX = 5;
-    if (labels.length <= MAX) {
-      namesEl.textContent = labels.join(' · ');
-    } else {
-      namesEl.textContent = labels.slice(0, MAX).join(' · ') + ' · +' + (labels.length - MAX) + ' more';
-    }
+    // Remove border-bottom from last row
+    const rows = list.querySelectorAll('label');
+    if (rows.length) rows[rows.length - 1].style.borderBottom = 'none';
   }
 
   document.getElementById('untickAllCoa')?.addEventListener('click', function() {
