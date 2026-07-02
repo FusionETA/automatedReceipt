@@ -250,7 +250,9 @@ class EmailSender
 
         $html = '';
         foreach ($paragraphs as $paragraph) {
-            $html .= '<p style="margin:0 0 18px;">' . nl2br(htmlspecialchars(trim($paragraph))) . '</p>';
+            $escaped = nl2br(htmlspecialchars(trim($paragraph)));
+            $escaped = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $escaped) ?? $escaped;
+            $html .= '<p style="margin:0 0 18px;">' . $escaped . '</p>';
         }
 
         return '<!DOCTYPE html><html lang="en"><body style="margin:0;padding:28px 20px;background:#f4f4f4;color:#222;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;"><div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:30px 34px;">' . $html . '</div></body></html>';

@@ -335,7 +335,7 @@ class XeroApiClient
             'currency_code'  => $invoice['CurrencyCode'] ?? 'USD',
             'invoice_reference' => trim((string) ($invoice['Reference'] ?? '')),
             'payment_reference' => trim((string) ($invoice['Payments'][0]['Reference'] ?? '')),
-            'line_items'     => $invoice['LineItems'] ?? [],
+            'line_items'     => array_slice($invoice['LineItems'] ?? [], 0, 1),
             'tenant_id'      => $this->tenantId,
         ];
     }

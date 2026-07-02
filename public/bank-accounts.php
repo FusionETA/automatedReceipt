@@ -591,7 +591,10 @@ uasort($savedTemplates, static function (array $a, array $b): int {
     </div>
     <div class="modal-body">
       <div class="template-toolbar">
-        <div class="placeholder-note">Click inside Sender Name, Email Subject, or Email Content first. Then click any placeholder below to insert it into the field you are editing.</div>
+        <div class="placeholder-note">Click inside Sender Name, Email Subject, or Email Content first. Then click any placeholder or formatting button below to insert it.</div>
+        <div class="pill-row" style="margin-bottom:6px;">
+          <button type="button" class="pill-btn" id="boldFormatBtn" style="font-weight:700;border-color:#555;" title="Wrap selected text in bold">B Bold</button>
+        </div>
         <div class="pill-row" id="sharedPlaceholderRow">
           <?php foreach ($placeholderOptions as $placeholder): ?>
             <button type="button" class="pill-btn shared-placeholder-btn" data-token="<?= htmlspecialchars($placeholder['token']) ?>"><?= htmlspecialchars($placeholder['token']) ?></button>
@@ -685,7 +688,18 @@ uasort($savedTemplates, static function (array $a, array $b): int {
       : textarea.classList.contains('template-sender-name')
       ? 'Sender name preview will appear here.'
       : 'Preview will appear here.';
-    preview.textContent = content || fallback;
+
+    if (!content) {
+      preview.textContent = fallback;
+      return;
+    }
+
+    // Render **bold** and newlines in preview
+    const escaped = content
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+    preview.innerHTML = escaped;
   }
 
   function setActiveTemplateField(field) {
@@ -999,6 +1013,27 @@ uasort($savedTemplates, static function (array $a, array $b): int {
   function escapeAttr(value) {
     return escapeHtml(value).replace(/'/g, '&#039;');
   }
+
+  document.getElementById('boldFormatBtn')?.addEventListener('click', function () {
+    if (!activeTemplateField) return;
+    const field = activeTemplateField;
+    const start = field.selectionStart || 0;
+    const end = field.selectionEnd || 0;
+    const value = field.value;
+    const selected = value.slice(start, end);
+
+    if (selected.length > 0) {
+      field.value = value.slice(0, start) + '**' + selected + '**' + value.slice(end);
+      field.selectionStart = start;
+      field.selectionEnd = end + 4;
+    } else {
+      field.value = value.slice(0, start) + '****' + value.slice(end);
+      field.selectionStart = field.selectionEnd = start + 2;
+    }
+
+    field.focus();
+    renderPreview(field);
+  });
 
   document.querySelectorAll('.shared-placeholder-btn').forEach(function (button) {
     button.addEventListener('click', function () {
