@@ -118,13 +118,6 @@ foreach ($files as $file) {
             continue;
         }
 
-        $today = (new \DateTime('now', $localTz))->format('Y-m-d');
-
-        if ($fullyPaidDate !== $today) {
-            Logger::info('cron', "Invoice {$resourceId} paid on {$fullyPaidDate}, today is {$today} — skipping.");
-            continue;
-        }
-
         $receiptRule = null;
         $triggerMethod = OrgStorage::getReceiptTriggerMethod($tenantId);
 
