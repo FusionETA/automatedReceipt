@@ -52,21 +52,6 @@ if (!isset($allTokens[$activeTenantId])) {
 
 $activeToken = $allTokens[$activeTenantId];
 
-// ── Fetch invoices ────────────────────────────────────────────────────
-$invoices   = [];
-$fetchError = '';
-$hasMore    = false;
-
-$page = max(1, (int) ($_GET['page'] ?? 1));
-
-try {
-    $xero = new XeroApiClient($userId, $activeTenantId);
-    $invoices = $xero->getRecentlyPaid(7, $page);
-    $hasMore = count($invoices) === 100;
-} catch (\Throwable $e) {
-    $fetchError = $e->getMessage();
-}
-
 // ── Receipt setup status ──────────────────────────────────────────────
 $receiptTriggerMethod = OrgStorage::getReceiptTriggerMethod($activeTenantId);
 $receiptConfigured    = OrgStorage::isReceiptTriggerConfigured($activeTenantId);
@@ -87,10 +72,24 @@ if (file_exists($eventsPath)) {
 // ── Load receipt send log for this org ───────────────────────────────
 $receiptLog = OrgStorage::getReceiptLog($activeTenantId);
 
-$invoices = array_filter($invoices, function ($inv) use ($receiptLog) {
-    $invoiceNum = $inv['InvoiceNumber'] ?? '';
-    return isset($receiptLog[$invoiceNum]);
-});
+// ── Fetch recent Xero invoices as a lookup map (keyed by InvoiceNumber) ─
+$fetchError = '';
+$xeroInvoiceMap = [];
+try {
+    $xero = new XeroApiClient($userId, $activeTenantId);
+    $recentInvoices = $xero->getRecentlyPaid(30);
+    foreach ($recentInvoices as $inv) {
+        $num = $inv['InvoiceNumber'] ?? '';
+        if ($num !== '') {
+            $xeroInvoiceMap[$num] = $inv;
+        }
+    }
+} catch (\Throwable $e) {
+    $fetchError = $e->getMessage();
+}
+
+// ── Build display rows from receipt log (newest first) ───────────────
+$receiptLogRows = array_reverse($receiptLog, true);
 
 $availableTemplates = [];
 $templateDir = dirname(__DIR__) . '/templates/receipt/';
@@ -144,9 +143,6 @@ function parseXeroDate(string $raw): string {
     return $raw;
 }
 
-function pageUrl(int $page): string {
-    return '?page=' . $page;
-}
 
 ?>
 <!DOCTYPE html>
@@ -372,56 +368,53 @@ function pageUrl(int $page): string {
   <div style="margin-bottom:20px">
     <h2 style="font-size:20px;font-weight:600;color:#111">Receipt Log</h2>
     <p style="font-size:13px;color:#777;margin-top:6px">
-      View invoices with receipt activity.
+      All receipts ever sent or attempted, newest first.
     </p>
   </div>
 
   <!-- Invoice table -->
   <div class="card" style="padding:0;overflow:hidden">
-    <?php if (empty($invoices) && !$fetchError): ?>
+    <?php if (empty($receiptLogRows) && !$fetchError): ?>
       <div class="empty">
-        No receipt records found for recently paid invoices.
+        No receipt records found yet.
       </div>
     <?php else: ?>
       <table>
         <thead>
           <tr>
-            <th>Invoice #</th><th>Contact</th><th>Invoice Date</th>
-            <th>Total</th><th>Paid</th>
-            <th>Receipt Sent</th>
+            <th>Invoice #</th><th>Contact</th><th>Sent At</th>
+            <th>Total</th><th>Email</th>
+            <th>Receipt Status</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($invoices as $inv):
-            $currCode    = htmlspecialchars($inv['CurrencyCode'] ?? '');
-            $total       = (float)($inv['Total'] ?? 0);
-            $amountPaid  = (float)($inv['AmountPaid'] ?? 0);
-            $invoiceNum  = $inv['InvoiceNumber'] ?? '';
-            $receiptEntry = $receiptLog[$invoiceNum] ?? null;
+          <?php foreach ($receiptLogRows as $invoiceNum => $receiptEntry):
+            $inv        = $xeroInvoiceMap[$invoiceNum] ?? null;
+            $currCode   = htmlspecialchars($inv['CurrencyCode'] ?? '');
+            $total      = (float)($inv['Total'] ?? 0);
+            $contactName = $inv['Contact']['Name'] ?? ($receiptEntry['email'] ? '' : '—');
+            $invoiceId  = $inv['InvoiceID'] ?? '';
+            $sentAt     = $receiptEntry['timestamp'] ?? '';
           ?>
           <tr>
-            <td><a href="<?= Bootstrap::url('/invoice.php') ?>?id=<?= urlencode($inv['InvoiceID']) ?>"><?= htmlspecialchars($invoiceNum ?: '—') ?></a></td>
-            <td><?= htmlspecialchars($inv['Contact']['Name'] ?? '—') ?></td>
-            <td style="white-space:nowrap"><?= parseXeroDate($inv['Date'] ?? '') ?></td>
-            <td class="amount"><?= $currCode ?> <?= number_format($total, 2) ?></td>
-            <td class="amount" style="color:#22c55e"><?= $amountPaid > 0 ? $currCode . ' ' . number_format($amountPaid, 2) : '—' ?></td>
+            <td><?php if ($invoiceId): ?><a href="<?= Bootstrap::url('/invoice.php') ?>?id=<?= urlencode($invoiceId) ?>"><?= htmlspecialchars($invoiceNum ?: '—') ?></a><?php else: ?><?= htmlspecialchars($invoiceNum ?: '—') ?><?php endif; ?></td>
+            <td><?= htmlspecialchars($contactName ?: '—') ?></td>
+            <td style="white-space:nowrap"><?= $sentAt ? htmlspecialchars(date('d M Y H:i', strtotime($sentAt))) : '—' ?></td>
+            <td class="amount"><?= $inv ? ($currCode . ' ' . number_format($total, 2)) : '—' ?></td>
+            <td style="font-size:12px;color:#555"><?= htmlspecialchars($receiptEntry['email'] ?? '—') ?></td>
             <td><?= receiptStatusBadge($receiptEntry) ?></td>
             <td style="white-space:nowrap">
-              <a href="<?= Bootstrap::url('/receipt.php') ?>?id=<?= urlencode($inv['InvoiceID']) ?>" style="color:#3b82f6;font-size:12px;text-decoration:none">🧾 Receipt</a>
+              <?php if ($invoiceId): ?>
+              <a href="<?= Bootstrap::url('/receipt.php') ?>?id=<?= urlencode($invoiceId) ?>" style="color:#3b82f6;font-size:12px;text-decoration:none">🧾 Receipt</a>
+              <?php else: ?>
+              <span style="color:#bbb;font-size:12px">—</span>
+              <?php endif; ?>
             </td>
           </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
-
-      <?php if ($page > 1 || $hasMore): ?>
-        <div class="pagination">
-          <?php if ($page > 1): ?><a href="<?= pageUrl($page - 1) ?>">← Prev</a><?php endif; ?>
-          <span class="page-info">Page <?= $page ?></span>
-          <?php if ($hasMore): ?><a href="<?= pageUrl($page + 1) ?>">Next →</a><?php endif; ?>
-        </div>
-       <?php endif; ?>
     <?php endif; ?>
   </div>
 
