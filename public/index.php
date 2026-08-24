@@ -88,8 +88,16 @@ try {
     $fetchError = $e->getMessage();
 }
 
-// ── Build display rows from receipt log (newest first) ───────────────
+// ── Build display rows from receipt log (newest first, filtered) ─────
+$logFilter = in_array($_GET['period'] ?? '', ['7', '30', 'all'], true) ? ($_GET['period'] ?? 'all') : 'all';
 $receiptLogRows = array_reverse($receiptLog, true);
+if ($logFilter !== 'all') {
+    $cutoff = date('Y-m-d', strtotime("-{$logFilter} days"));
+    $receiptLogRows = array_filter($receiptLogRows, function ($entry) use ($cutoff) {
+        $ts = substr($entry['timestamp'] ?? '', 0, 10);
+        return $ts >= $cutoff;
+    });
+}
 
 $availableTemplates = [];
 $templateDir = dirname(__DIR__) . '/templates/receipt/';
@@ -365,18 +373,25 @@ function parseXeroDate(string $raw): string {
     </div>
   <?php endif; ?>
 
-  <div style="margin-bottom:20px">
-    <h2 style="font-size:20px;font-weight:600;color:#111">Receipt Log</h2>
-    <p style="font-size:13px;color:#777;margin-top:6px">
-      All receipts ever sent or attempted, newest first.
-    </p>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+    <div>
+      <h2 style="font-size:20px;font-weight:600;color:#111">Receipt Log</h2>
+      <p style="font-size:13px;color:#777;margin-top:6px">
+        All receipts sent or attempted, newest first.
+      </p>
+    </div>
+    <div style="display:flex;gap:6px">
+      <?php foreach (['7' => 'Last 7 days', '30' => 'Last 30 days', 'all' => 'All time'] as $val => $label): ?>
+        <a href="?period=<?= $val ?>" style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;border:1.5px solid <?= $logFilter === $val ? '#3b82f6' : '#d1d1d1' ?>;background:<?= $logFilter === $val ? '#3b82f6' : '#fff' ?>;color:<?= $logFilter === $val ? '#fff' : '#555' ?>"><?= $label ?></a>
+      <?php endforeach; ?>
+    </div>
   </div>
 
   <!-- Invoice table -->
   <div class="card" style="padding:0;overflow:hidden">
     <?php if (empty($receiptLogRows) && !$fetchError): ?>
       <div class="empty">
-        No receipt records found yet.
+        No receipt records found<?= $logFilter !== 'all' ? ' in this period' : '' ?>.
       </div>
     <?php else: ?>
       <table>
